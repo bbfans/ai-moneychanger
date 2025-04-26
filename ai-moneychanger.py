@@ -4,9 +4,19 @@ import os
 import streamlit as st
 import requests
 import json
+from openai import OpenAI
 
 load_dotenv()
 EXCHANGERATE_API_KEY = os.getenv("EXCHANGERATE_API_KEY")
+
+token = os.environ["GITHUB_TOKEN"]
+endpoint = "https://models.github.ai/inference"
+model_name = "openai/gpt-4o-mini"
+
+client = OpenAI(
+    base_url=endpoint,
+    api_key=token,
+)
 
 
 def get_exchange_rate(base: str, target: str, amount: str) -> Tuple:
@@ -16,22 +26,32 @@ def get_exchange_rate(base: str, target: str, amount: str) -> Tuple:
     return (base, target, amount, f'{response["conversion_result"]:.2f}')
 
 
-st.title("AI Money Changer")
+def call_llm(textbox_input) -> Dict:
+    """Make a call to the LLM with the textbox_input as the prompt.
+       The output from the LLM should be a JSON (dict) with the base, amount and target"""
+    try:
+        response = client.chat.completions.create(messages=[{
+            "role":
+            "system",
+            "content":
+            "You are a helpful assistant.",
+        }, {
+            "role":
+            "user",
+            "content":
+            textbox_input,
+        }],
+                                                  temperature=1.0,
+                                                  top_p=1.0,
+                                                  max_tokens=1000,
+                                                  model=model_name)
 
-user_input = st.text_input("Enter your prompt here")
+        print(response.choices[0].message.content)
+    except Exception as e:
+        print(f"Exception {e} for {text}")
+    else:
+        return completion
 
-if st.button("Submit"):
-    st.write(f"User input: {user_input}")
-
-# def call_llm(textbox_input) -> Dict:
-#     """Make a call to the LLM with the textbox_input as the prompt.
-#        The output from the LLM should be a JSON (dict) with the base, amount and target"""
-#     try:
-#         completion = ...
-#     except Exception as e:
-#         print(f"Exception {e} for {text}")
-#     else:
-#         return completion
 
 # def run_pipeline():
 #     """Based on textbox_input, determine if you need to use the tools (function calling) for the LLM.
@@ -49,20 +69,9 @@ if st.button("Submit"):
 #     else:
 #         st.write("NotImplemented")
 
-# if __name__ == "__main__":
+st.title("AI Money Changer")
 
-#     # # Where USD is the base currency you want to use
-#     # url1 = f"https://v6.exchangerate-api.com/v6/{EXCHANGERATE_API_KEY}/latest/USD"
+user_input = st.text_input("Enter your prompt here")
 
-#     # # Making our request
-#     # response1 = requests.get(url1)
-#     # data1 = response1.json()
-
-#     # # Your JSON object
-#     # print(json.dumps(data1, indent=4, sort_keys=True))
-
-#     url2 = f"https://v6.exchangerate-api.com/v6/{EXCHANGERATE_API_KEY}/pair/USD/CAD/100.00"
-
-#     response2 = requests.get(url2)
-#     data2 = response2.json()
-#     print(json.dumps(data2, indent=4, sort_keys=True))
+if st.button("Submit"):
+    st.write(call_llm(user_input))
