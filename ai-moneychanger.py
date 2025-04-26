@@ -5,6 +5,9 @@ import streamlit as st
 import requests
 import json
 from openai import OpenAI
+import openai
+from langsmith.wrappers import wrap_openai
+from langsmith import traceable
 
 load_dotenv()
 EXCHANGERATE_API_KEY = os.getenv("EXCHANGERATE_API_KEY")
@@ -18,7 +21,16 @@ client = OpenAI(
     api_key=token,
 )
 
+LANGSMITH_ENDPOINT = "https://api.smith.langchain.com"
+os.environ["LANGSMITH_TRACING"] = os.getenv("LANGSMITH_TRACING")
+os.getenv("LANGSMITH_API_KEY")
+os.environ["LANGSMITH_PROJECT"] = "ai-money-changer"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
+##client = wrap_openai(openai.Client())
+
+
+@traceable
 def get_exchange_rate(base: str, target: str, amount: str) -> Tuple:
     """Return a tuple of (base, target, amount, conversion_result (2 decimal places))"""
     url = f"https://v6.exchangerate-api.com/v6/{EXCHANGERATE_API_KEY}/pair/{base}/{target}/{amount}"
@@ -26,6 +38,7 @@ def get_exchange_rate(base: str, target: str, amount: str) -> Tuple:
     return (base, target, amount, f'{response["conversion_result"]:.2f}')
 
 
+@traceable
 def call_llm(textbox_input) -> Dict:
     """Make a call to the LLM with the textbox_input as the prompt.
        The output from the LLM should be a JSON (dict) with the base, amount and target"""
@@ -76,18 +89,22 @@ def call_llm(textbox_input) -> Dict:
         )
 
     except Exception as e:
-        print(f"Exception {e} for {text}")
+        print(f"Exception {e}")
     else:
         return response  #.choices[0].message.content
 
 
-def run_pipeline():
+@traceable
+def run_pipeline(user_input):
     """Based on textbox_input, determine if you need to use the tools (function calling) for the LLM.
     Call get_exchange_rate(...) if necessary"""
 
     response = call_llm(user_input)
 
     #st.write(response)
+    if response == None:
+        st.write("Error in calling LLM")
+        exit(1)
 
     if response.choices[0].finish_reason == "tool_calls":  #tool_calls
         # Update this
@@ -109,10 +126,11 @@ def run_pipeline():
         st.write("NotImplemented")
 
 
-st.title("AI Money Changer")
+st.title("AI Money Changer 1.0")
 
-user_input = st.text_input("Enter your prompt here")
+# Text box for user input
+user_input = st.text_input("Enter the amount and the currency")
 
 if st.button("Submit"):
     # st.write(call_llm(user_input))
-    run_pipeline()
+    run_pipeline(user_input)
