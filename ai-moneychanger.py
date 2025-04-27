@@ -5,10 +5,8 @@ import streamlit as st
 import requests
 import json
 from openai import OpenAI
-import openai
 from langsmith.wrappers import wrap_openai
 from langsmith import traceable
-
 import streamlit.components.v1 as components
 
 js_code = """
@@ -143,8 +141,38 @@ def run_pipeline(user_input):
 st.title("AI Money Changer 1.0")
 
 # Text box for user input
-user_input = st.text_input("Enter the amount and the currency")
+user_input = st.text_input(
+    "Enter the amount and the currency, or a sentence describing how do you want to exchange the money:"
+)
 
 if st.button("Submit"):
     # st.write(call_llm(user_input))
     run_pipeline(user_input)
+
+## Add Extra Info
+st.markdown("""---""")
+
+st.markdown('''# :red[ai-moneychanger 1.0]
+A project using LLM and API to convert the native language money change request  
+
+# Project Pushlished URL 
+# https://ai-moneychanger.streamlit.app/
+
+
+## Tech Stack 
+
+
+1.  Streamlit  
+2.  Exchangerate-api  
+3.  Replit IDE 
+4.  Github OpenAI GPT-4o mini   
+5.  Langchain Smith  
+6.  Microsoft clarity 
+7.  Streamlit App Cloud 
+8.  Python  
+
+
+# Author
+:balloon: Jie Chen @ 2025 :balloon:
+
+''')
